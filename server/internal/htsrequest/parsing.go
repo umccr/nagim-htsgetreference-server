@@ -14,7 +14,7 @@ import (
 	"reflect"
 
 	"github.com/ga4gh/htsget-refserver/internal/htsutils"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 // parsePathParam parses a single url path parameter as a string

@@ -1,13 +1,14 @@
 package htsdao
 
 import (
+	"github.com/ga4gh/htsget-refserver/internal/htsrequest"
 	"math"
 	"net/http"
 	"strings"
 
+	"github.com/ga4gh/htsget-refserver/internal/awsutils"
 	"github.com/ga4gh/htsget-refserver/internal/htsconstants"
 	"github.com/ga4gh/htsget-refserver/internal/htsticket"
-	"github.com/ga4gh/htsget-refserver/internal/awsutils"
 )
 
 type URLDao struct {
@@ -33,6 +34,10 @@ func (dao *URLDao) GetContentLength() int64 {
 	return res.ContentLength
 }
 
+func (dao *URLDao) GetHeaderByteRangeUrl() *htsticket.URL {
+	return nil
+}
+
 func (dao *URLDao) GetByteRangeUrls() []*htsticket.URL {
 
 	numBytes := dao.GetContentLength()
@@ -54,6 +59,10 @@ func (dao *URLDao) GetByteRangeUrls() []*htsticket.URL {
 		urls = append(urls, url)
 	}
 	return urls
+}
+
+func (dao *URLDao) GetChunkedInPlaceBlocks(regions []*htsrequest.Region) []*htsticket.URL {
+	return nil
 }
 
 func (dao *URLDao) String() string {

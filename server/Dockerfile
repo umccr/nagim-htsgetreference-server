@@ -2,22 +2,13 @@ FROM golang:latest
 
 WORKDIR /usr/src/app
 
-ENV SAMTOOLS_VERSION 1.9
-ENV BCFTOOLS_VERSION 1.10.2
+ENV SAMTOOLS_VERSION 1.14
+ENV BCFTOOLS_VERSION 1.14
 
 RUN apt-get update \
     && apt-get install --yes build-essential
 
-RUN apt-get --yes install autoconf automake make gcc perl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev libncurses5-dev
-
-COPY go.mod go.sum ./
-COPY cmd cmd
-COPY internal internal
-COPY data/gcp data/gcp
-COPY data/config data/config
-COPY deployments deployments
-RUN mkdir temp
-RUN go mod download
+RUN apt-get --yes install autoconf automake make gcc perl curl zlib1g-dev libbz2-dev liblzma-dev libcurl4-gnutls-dev libssl-dev libncurses5-dev
 
 # Install samtools dependency
 RUN cd /tmp \
@@ -39,6 +30,13 @@ RUN cd /tmp \
     && make install \
     && cd / && rm -rf /tmp/bcftools-${BCFTOOLS_VERSION}
 
+COPY go.mod go.sum ./
+COPY cmd cmd
+COPY internal internal
+COPY data/config/umccr-s3.config.json ./
+RUN mkdir temp
+RUN go mod download
+
 # Install htsget-refserver-utils dependency
 RUN go mod download github.com/ga4gh/htsget-refserver-utils@v1.0.0 \
     && cd /go/pkg/mod/github.com/ga4gh/htsget-refserver-utils@v1.0.0 \
@@ -49,4 +47,4 @@ ENV PATH="/usr/local:${PATH}"
 RUN go build -o ./htsget-refserver ./cmd
 EXPOSE 3000
 
-CMD ["./htsget-refserver"]
+CMD ["./htsget-refserver", "-config", "/usr/src/app/umccr-s3.config.json"]

@@ -74,8 +74,7 @@ func (v *ParamValidator) ValidateID(htsgetReq *HtsgetRequest, id string) (bool, 
 		return false, "The requested resource could not be associated with a registered data source"
 	}
 
-	// attempt to locate the object by http request (if url) or on local file
-	// path
+	// attempt to locate the object by http request (if url), S3 head if S3, or regular file on local file path
 	if htsutils.IsValidURL(objPath) {
 		if strings.HasPrefix(objPath, awsutils.S3Proto) {
 			log.Debug("Resource with id %s mapped to S3 URL %s so attempting AWS validation", id, objPath)
@@ -174,6 +173,9 @@ func getReferenceNamesInVariantsObject(htsgetReq *HtsgetRequest) ([]string, erro
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("Attempting bcftools view to extract variant references in %s", fileURL)
+
 	cmd := exec.Command("bcftools", "view", "-h", fileURL)
 	pipe, err := cmd.StdoutPipe()
 	if err != nil {
@@ -229,16 +231,18 @@ func (v *ParamValidator) ValidateReferenceName(htsgetReq *HtsgetRequest, referen
 		return true, ""
 	}
 	// otherwise, check that referenceName is in the header
-	referenceNames, err := getReferenceNames(htsgetReq)
-	if err != nil {
-		return false, err.Error()
-	}
 
-	if htsutils.IsItemInArray(referenceName, referenceNames) {
-		return true, ""
-	}
+	// TODO: make the bcftools call to extract these names work in an AWS environment
+	//referenceNames, err := getReferenceNames(htsgetReq)
+	//if err != nil {
+	//	return false, err.Error()
+	//}
 
-	return false, "invalid 'referenceName': " + referenceName
+	//if htsutils.IsItemInArray(referenceName, referenceNames) {
+	return true, ""
+	//}
+
+	// return false, "invalid 'referenceName': " + referenceName
 }
 
 // ValidateStart validates the 'start' query string parameter. checks that it is

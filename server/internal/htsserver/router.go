@@ -1,14 +1,15 @@
 package htsserver
 
 import (
+	"github.com/xenitab/go-oidc-middleware/oidchttp"
+	"github.com/xenitab/go-oidc-middleware/options"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"github.com/ga4gh/htsget-refserver/internal/assumerole"
 	"github.com/ga4gh/htsget-refserver/internal/htsconfig"
 	"github.com/ga4gh/htsget-refserver/internal/htsconstants"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 )
 
@@ -30,7 +31,7 @@ func SetRouter() (*chi.Mux, error) {
 	// Setup AWS AssumeRole middleware
 	if htsconfig.IsAwsAssumeRole() {
 		router.Use(assumerole.Handler(assumerole.Options{
-			Debug: false,
+			Debug: true,
 		}))
 	}
 
@@ -46,24 +47,27 @@ func SetRouter() (*chi.Mux, error) {
 
 	// if variants enabled, add variants routes
 	if htsconfig.IsEndpointEnabled(htsconstants.APIEndpointVariantsTicket) {
-		router.Get(htsconstants.APIEndpointVariantsTicket.String(), getVariantsTicket)
-		router.Post(htsconstants.APIEndpointVariantsTicket.String(), postVariantsTicket)
-		router.Get(htsconstants.APIEndpointVariantsData.String(), getVariantsData)
+		router.Handle(htsconstants.APIEndpointVariantsTicket.String(), oidchttp.New(http.HandlerFunc(getVariantsTicket),
+			options.WithIssuer("https://broker.nagim.dev"),
+		))
+
+		//router.Post(htsconstants.APIEndpointVariantsTicket.String(), postVariantsTicket)
+		//router.Get(htsconstants.APIEndpointVariantsData.String(), getVariantsData)
 		router.Get(htsconstants.APIEndpointVariantsServiceInfo.String(), getVariantsServiceInfo)
 	}
 
 	// add the file bytes endpoint for streaming byte indices of local files
-	router.Get(htsconstants.APIEndpointFileBytes.String(), getFileBytes)
+	// router.Get(htsconstants.APIEndpointFileBytes.String(), getFileBytes)
 
 	// add the static files route
-	docsDir := htsconfig.GetDocsDir()
-	if docsDir != "" {
-		absDocsDir, err := filepath.Abs(docsDir)
-		if err != nil {
-			return nil, err
-		}
-		http.Handle("/docs/", http.StripPrefix("/docs/", http.FileServer(http.Dir(absDocsDir))))
-	}
+	//docsDir := htsconfig.GetDocsDir()
+	//if docsDir != "" {
+	//	absDocsDir, err := filepath.Abs(docsDir)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//http.Handle("/docs/", http.StripPrefix("/docs/", http.FileServer(http.Dir(absDocsDir))))
+	//}
 
 	return router, nil
 }

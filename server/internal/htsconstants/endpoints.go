@@ -22,7 +22,7 @@ var htsEndpointStringMap = map[APIEndpoint]string{
 	APIEndpointReadsTicket:         "/reads/{id}*",
 	APIEndpointReadsData:           "/reads/data/{id}*",
 	APIEndpointReadsServiceInfo:    "/reads/service-info",
-	APIEndpointVariantsTicket:      "/variants/{id}*",
+	APIEndpointVariantsTicket:      "/variants/*",
 	APIEndpointVariantsData:        "/variants/data/{id}*",
 	APIEndpointVariantsServiceInfo: "/variants/service-info",
 	APIEndpointFileBytes:           "/file-bytes",

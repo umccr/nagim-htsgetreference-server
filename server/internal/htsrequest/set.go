@@ -9,12 +9,12 @@ package htsrequest
 
 import (
 	"errors"
+	"github.com/go-chi/chi/v5"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 
 	"github.com/ga4gh/htsget-refserver/internal/htserror"
-
 	"github.com/ga4gh/htsget-refserver/internal/htsconstants"
 )
 
@@ -223,14 +223,14 @@ var orderedParamsMap = map[htsconstants.HTTPMethod]map[htsconstants.APIEndpoint]
 		 * ************************************************** */
 
 		htsconstants.APIEndpointVariantsTicket: []SetParameterTuple{
-			{
-				htsconstants.ParamLocPath,
-				"id",
-				"NoTransform",
-				"ValidateID",
-				"SetID",
-				defaultID,
-			},
+	//		{
+	//			htsconstants.ParamLocPath,
+	//			"id",
+	//			"NoTransform",
+	//			"ValidateID",
+	//			"SetID",
+	//			defaultID,
+	//		},
 			{
 				htsconstants.ParamLocQuery,
 				"format",
@@ -630,6 +630,17 @@ func SetAllParameters(method htsconstants.HTTPMethod, endpoint htsconstants.APIE
 	orderedParams := orderedParamsMap[method][endpoint]
 	htsgetReq := NewHtsgetRequest()
 	htsgetReq.SetEndpoint(endpoint)
+
+	// chi seems to have changed to format of URLParam mapping from 4->5 - so this was hacked in
+	id := chi.URLParam(request, "*")
+	if id != "" {
+		valid, err := NewParamValidator().ValidateID(htsgetReq, id)
+
+		if !valid {
+			return nil, errors.New(err)
+		}
+		htsgetReq.SetID(id)
+	}
 
 	// for POST requests, unmarshal the JSON body once and pass to individual
 	// setting methods

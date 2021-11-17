@@ -4,11 +4,10 @@
 package main
 
 import (
-	"net/http"
-
 	"github.com/ga4gh/htsget-refserver/internal/htsconfig"
 	log "github.com/ga4gh/htsget-refserver/internal/htslog"
 	"github.com/ga4gh/htsget-refserver/internal/htsserver"
+	"net/http"
 )
 
 
@@ -30,6 +29,7 @@ func main() {
 	if err != nil {
 		panic("Problem setting up server.")
 	}
+
 	http.Handle("/", router)
 
 	// start server

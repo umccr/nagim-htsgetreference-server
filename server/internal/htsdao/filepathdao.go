@@ -1,6 +1,7 @@
 package htsdao
 
 import (
+	"github.com/ga4gh/htsget-refserver/internal/htsrequest"
 	"math"
 	"os"
 
@@ -54,6 +55,14 @@ func (dao *FilePathDao) GetByteRangeUrls() []*htsticket.URL {
 		urls = append(urls, url)
 	}
 	return urls
+}
+
+func (dao *FilePathDao) GetChunkedInPlaceBlocks(regions []*htsrequest.Region) []*htsticket.URL {
+	return nil
+}
+
+func (dao *FilePathDao) GetHeaderByteRangeUrl() *htsticket.URL {
+	return nil
 }
 
 func (dao *FilePathDao) String() string {
