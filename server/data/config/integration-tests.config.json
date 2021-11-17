@@ -1,0 +1,30 @@
+{
+  "htsgetConfig": {
+    "props": {
+      "port": "3000",
+      "host": "http://localhost:3000/"
+    },
+    "reads": {
+      "enabled": true,
+      "dataSourceRegistry": {
+        "sources": [
+          {
+            "pattern": "^tabulamuris\\.(?P<accession>.*)$",
+            "path": "../../data/test/sources/tabulamuris/{accession}.mus.Aligned.out.sorted.bam"
+          }
+        ]
+      }
+    },
+    "variants": {
+      "enabled": true,
+      "dataSourceRegistry": {
+        "sources": [
+          {
+            "pattern": "^(?P<accession>.*)_GIAB$",
+            "path": "../../data/test/sources/giab/{accession}_GIAB.filtered.vcf.gz"
+          }
+        ]
+      }
+    }
+  }
+}
