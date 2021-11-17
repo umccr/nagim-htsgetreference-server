@@ -1,0 +1,26 @@
+{
+  "htsgetConfig": {
+    "props": {
+      "port": "3000",
+      "host": "http://localhost:3000/",
+      "logLevel": "debug",
+      "assumeRole": true
+    },
+    "variants": {
+      "enabled": true,
+      "serviceInfo": {
+        "id": "org.umccr.htsget-apse2.variants",
+        "name": "GA4GH htsget reference server with S3",
+        "description": "Stream authenticated private S3 data via htsget using passport/visas"
+      },
+      "dataSourceRegistry": {
+        "sources": [
+          {
+            "pattern": "^10g/(?P<path>.*)$",
+            "path": "s3://umccr-10g-data-dev/{path}"
+          }
+        ]
+      }
+    }
+  }
+}
