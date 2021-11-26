@@ -2,12 +2,12 @@ package htsdao
 
 import (
 	"compress/gzip"
-	"github.com/ga4gh/htsget-refserver/internal/bgzf"
-	"github.com/ga4gh/htsget-refserver/internal/tabix"
 	"github.com/ga4gh/htsget-refserver/internal/awsutils"
+	"github.com/ga4gh/htsget-refserver/internal/bgzf"
 	log "github.com/ga4gh/htsget-refserver/internal/htslog"
 	"github.com/ga4gh/htsget-refserver/internal/htsrequest"
 	"github.com/ga4gh/htsget-refserver/internal/htsticket"
+	"github.com/ga4gh/htsget-refserver/internal/tabix"
 	"sort"
 	"time"
 )
@@ -108,6 +108,19 @@ func (dao *AWSDao) GetHeaderByteRangeUrl() *htsticket.URL {
 
 	return nil
 }
+
+func (dao *AWSDao) GetBgzipEof() *htsticket.URL {
+
+	// TODO: this should come from a config setting.. or we should teach the server htsget inlining
+	req, _ := awsutils.PresignGetObject(awsutils.S3Dto{
+		ObjPath: "s3://umccr-10g-data-dev/bgzip-eof.bin",
+	})
+
+	return htsticket.NewURL().
+		SetURL(req).
+		SetClassBody()
+}
+
 
 // GetByteRangeUrls return the content of this file as a set of 'block' URLs
 func (dao *AWSDao) GetByteRangeUrls() []*htsticket.URL {

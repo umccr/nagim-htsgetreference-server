@@ -115,6 +115,8 @@ func (i *Index) Chunks(ref string, beg, end int) ([]bgzf.Chunk, error) {
 	return adjacent(chunks), nil
 }
 
+//TODO: this is very shoddy - need to funadmentally fix
+
 // Chunks returns a []bgzf.Chunk that corresponds to the given genomic interval.
 func (i *Index) ChunksWithNext(ref string, beg, end int) ([]bgzf.Chunk, int64, error) {
 	id, ok := i.nameMap[ref]

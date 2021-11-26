@@ -89,6 +89,33 @@ func GetS3ObjectRange(dto S3Dto, start int64, end int64) (io.ReadCloser, error) 
 	return getResp.Body, nil
 }
 
+func PresignGetObject(dto S3Dto) (string, error) {
+	client := dto.NewS3Client()
+
+	// the use of the mock client/S3ApiClient means that the Presign object cannot be
+	// initialised from the client type without coercion
+	// TODO: a more idiomatic Go way to still have the mock test client but allow this
+	fullClient, ok := client.(*s3.Client)
+	if !ok {
+		return "", errors.New("Tried to use the presign operation when in mock test mode")
+	}
+
+	presignClient := s3.NewPresignClient(fullClient)
+
+	bucketName, objKeyName := dto.getBucketAndKey()
+
+	req, err := presignClient.PresignGetObject(context.TODO(), &s3.GetObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(objKeyName),
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return req.URL, nil
+}
+
 func PresignGetObjectRange(dto S3Dto, start int64, end int64) (string, error) {
 	client := dto.NewS3Client()
 

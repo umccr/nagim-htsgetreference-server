@@ -38,6 +38,10 @@ func (dao *URLDao) GetHeaderByteRangeUrl() *htsticket.URL {
 	return nil
 }
 
+func (dao *URLDao) GetBgzipEof() *htsticket.URL {
+	return nil
+}
+
 func (dao *URLDao) GetByteRangeUrls() []*htsticket.URL {
 
 	numBytes := dao.GetContentLength()

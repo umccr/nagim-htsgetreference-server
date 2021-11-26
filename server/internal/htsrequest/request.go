@@ -21,6 +21,7 @@ import (
 type HtsgetRequest struct {
 	endpoint           htsconstants.APIEndpoint
 	id                 string
+	dataset			   string
 	format             string
 	class              string
 	referenceName      string
@@ -62,6 +63,16 @@ func (r *HtsgetRequest) SetID(id string) {
 // GetID retrieves request ID
 func (r *HtsgetRequest) GetID() string {
 	return r.id
+}
+
+// SetDataset sets dataset
+func (r *HtsgetRequest) SetDataset(ds string) {
+	r.dataset = ds
+}
+
+// GetDataset retrieves dataset
+func (r *HtsgetRequest) GetDataset() string {
+	return r.dataset
 }
 
 // SetFormat sets the requested file format

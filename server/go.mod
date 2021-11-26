@@ -13,6 +13,7 @@ require (
 	github.com/go-chi/jwtauth/v5 v5.0.1
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/google/uuid v1.3.0
+	github.com/jwangsadinata/go-multimap v0.0.0-20190620162914-c29f3d7f33b6 // indirect
 	github.com/s12v/go-jwks v0.2.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/square/go-jose v2.5.1+incompatible

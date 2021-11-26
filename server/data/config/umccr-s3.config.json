@@ -16,8 +16,20 @@
       "dataSourceRegistry": {
         "sources": [
           {
-            "pattern": "^10g/(?P<path>.*)$",
-            "path": "s3://umccr-10g-data-dev/{path}"
+            "pattern": "^10g/vcf/(?P<sample>.*)$",
+            "path": "s3://umccr-10g-data-dev/{sample}/{sample}.hard-filtered.vcf.gz"
+          },
+          {
+            "pattern": "^10g/gvcf/(?P<sample>.*)$",
+            "path": "s3://umccr-10g-data-dev/{sample}/{sample}.hard-filtered.gvcf.gz"
+          },
+          {
+            "pattern": "^10g/sv/(?P<sample>.*)$",
+            "path": "s3://umccr-10g-data-dev/{sample}/{sample}.sv.vcf.gz"
+          },
+          {
+            "pattern": "^10g/cnv/(?P<sample>.*)$",
+            "path": "s3://umccr-10g-data-dev/{sample}/{sample}.cnv.vcf.gz"
           }
         ]
       }

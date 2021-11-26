@@ -14,8 +14,8 @@ import (
 	"net/http"
 	"reflect"
 
-	"github.com/ga4gh/htsget-refserver/internal/htserror"
 	"github.com/ga4gh/htsget-refserver/internal/htsconstants"
+	"github.com/ga4gh/htsget-refserver/internal/htserror"
 )
 
 // SetParameterTuple describes how a single request parameter will be parsed,
@@ -231,6 +231,14 @@ var orderedParamsMap = map[htsconstants.HTTPMethod]map[htsconstants.APIEndpoint]
 	//			"SetID",
 	//			defaultID,
 	//		},
+			{
+				htsconstants.ParamLocPath,
+				"dataset",
+				"NoTransform",
+				"NoValidation",
+				"SetDataset",
+				"NONE",
+			},
 			{
 				htsconstants.ParamLocQuery,
 				"format",

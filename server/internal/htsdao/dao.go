@@ -12,7 +12,10 @@ type DataAccessObject interface {
 	// GetByteRangeUrls return the entire file content (not header) as a series of URLs
 	GetByteRangeUrls() []*htsticket.URL
 
+	// GetChunkedInPlaceBlocks return each specified region as a byte range URL
     GetChunkedInPlaceBlocks(regions []*htsrequest.Region) []*htsticket.URL
+
+	GetBgzipEof() *htsticket.URL
 
 	String() string
 }

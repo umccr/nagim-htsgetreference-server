@@ -65,6 +65,10 @@ func (dao *FilePathDao) GetHeaderByteRangeUrl() *htsticket.URL {
 	return nil
 }
 
+func (dao *FilePathDao) GetBgzipEof() *htsticket.URL {
+	return nil
+}
+
 func (dao *FilePathDao) String() string {
 	return "FilePathDao id=" + dao.id + ", filePath=" + dao.filePath
 }

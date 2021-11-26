@@ -6,13 +6,13 @@ import (
 	"fmt"
 	log "github.com/ga4gh/htsget-refserver/internal/htslog"
 	"github.com/ga4gh/htsget-refserver/internal/htsrequest"
+	"github.com/jwangsadinata/go-multimap/slicemultimap"
 	"github.com/s12v/go-jwks"
 	"github.com/square/go-jose"
 	"github.com/xenitab/go-oidc-middleware/options"
 	"golang.org/x/crypto/ed25519"
 	"io/ioutil"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -41,35 +41,6 @@ type Manifest struct {
 	Url        string                    `json:"htsgetUrl"`
 	Artifacts  map[string]HtsGetArtifact `json:"htsgetArtifacts"`
 	Regions    []HtsGetRegion            `json:"htsgetRegions"`
-}
-
-func addBlockURL(blockURLs []*htsticket.URL, blockURL *htsticket.URL) []*htsticket.URL {
-	return append(blockURLs, blockURL)
-}
-
-func addHeaderBlockURL(blockURLs []*htsticket.URL, request *htsrequest.HtsgetRequest, totalBlocks int) []*htsticket.URL {
-	blockHeaders := htsticket.NewHeaders().
-		SetCurrentBlock("0").
-		SetTotalBlocks(strconv.Itoa(totalBlocks)).
-		SetClassHeader()
-	dataEndpoint, _ := request.ConstructDataEndpointURL(false, 0)
-	blockURL := htsticket.NewURL().
-		SetURL(dataEndpoint).
-		SetHeaders(blockHeaders).
-		SetClassHeader()
-	return addBlockURL(blockURLs, blockURL)
-}
-
-func addBodyBlockURL(blockURLs []*htsticket.URL, request *htsrequest.HtsgetRequest, currentBlock int, totalBlocks int, useRegion bool, regionI int) []*htsticket.URL {
-	blockHeaders := htsticket.NewHeaders().
-		SetCurrentBlock(strconv.Itoa(currentBlock)).
-		SetTotalBlocks(strconv.Itoa(totalBlocks))
-	dataEndpoint, _ := request.ConstructDataEndpointURL(useRegion, regionI)
-	blockURL := htsticket.NewURL().
-		SetURL(dataEndpoint).
-		SetHeaders(blockHeaders).
-		SetClassBody()
-	return addBlockURL(blockURLs, blockURL)
 }
 
 /**
@@ -128,8 +99,6 @@ func controlledAccess(issuer string, datasetId string, handler *requestHandler, 
 		return blockURLs
 	}
 
-	handler.HtsReq.GetRegions()
-
 	regions := make([]*htsrequest.Region, 0)
 
 	if handler.HtsReq.AllRegionsRequested() {
@@ -139,6 +108,9 @@ func controlledAccess(issuer string, datasetId string, handler *requestHandler, 
 		// in the manifest
 		// TODO: enforce sort ordering on the manifest regions (is probably true currently but not guaranteed)
 		for _, manifestRange := range manifest.Regions {
+			// our manifest *only* ever uses chromosome ids in "1", "2", "X" format..
+
+			// TODO: need to detect the underlying format of the VCF and match it.. currently all are chrX etc
 			compatibleReferenceName := manifestRange.Id
 
 			if !strings.HasPrefix(compatibleReferenceName, "chr") {
@@ -151,10 +123,40 @@ func controlledAccess(issuer string, datasetId string, handler *requestHandler, 
 	} else {
 		log.Debug("Ticket handler choosing a multi block selective regions response")
 
+		// this possibly is useful for some logic but for the moment we aren't really using
+		perChromosome := slicemultimap.New()
+
+		for _, r := range handler.HtsReq.GetRegions() {
+			perChromosome.Put(r.ReferenceName, r)
+		}
+
+		// TODO: fix the logic for the POST case where we can actually get different referenceNames
+		// this probably only works for the single GET case at the moment
+
 		for _, r := range handler.HtsReq.GetRegions() {
 
-			// for the moment only do the logic for very specific queries
-			if r.StartRequested() && r.EndRequested() {
+			if *r.Start == -1 && *r.End == -1 {
+
+				log.Debug("Attempting to serve chromosome region %s", r.ReferenceName)
+
+				for _, manifestRange := range manifest.Regions {
+					compatibleReferenceName := manifestRange.Id
+
+					if !strings.HasPrefix(compatibleReferenceName, "chr") {
+						compatibleReferenceName = fmt.Sprintf("chr%s", compatibleReferenceName)
+					}
+
+					// chromosome names must match between the request region and manifest region or else we just skip to
+					// next manifest rule
+					if r.ReferenceName != compatibleReferenceName {
+						continue
+					}
+
+					// because the user has asked for the whole chromosome - we are going to just serve up every manifest
+					// region that matches
+					regions = append(regions, &htsrequest.Region{ReferenceName: compatibleReferenceName, Start: manifestRange.Start, End: manifestRange.End})
+				}
+			} else {
 				// for every region - we need to find a manifest region that 'allows' us
 				// presume we aren't allowed
 				allowed := false
@@ -162,6 +164,14 @@ func controlledAccess(issuer string, datasetId string, handler *requestHandler, 
 				log.Debug("Attempting to get permission for region request %s %s-%s", r.ReferenceName, r.StartString(), r.EndString())
 
 				for _, manifestRange := range manifest.Regions {
+
+					// chromosome names must match between the request region and manifest region or else we just skip to
+					// next manifest rule
+					if r.ReferenceName != manifestRange.Id {
+						if r.ReferenceName != fmt.Sprintf("chr%s", manifestRange.Id) {
+							continue
+						}
+					}
 
 					var manifestStart int
 					if manifestRange.Start == nil {
@@ -175,14 +185,6 @@ func controlledAccess(issuer string, datasetId string, handler *requestHandler, 
 						manifestEnd = 1000000000
 					} else {
 						manifestEnd = *manifestRange.End
-					}
-
-					// names must match
-					if r.ReferenceName != manifestRange.Id {
-						if r.ReferenceName != fmt.Sprintf("chr%s", manifestRange.Id) {
-							// log.Debug("Not comparing to manifest region %s %d-%d due to name mismatch", manifestRange.Id, manifestStart, manifestEnd)
-							continue
-						}
 					}
 
 					log.Debug("Comparing to manifest region %s %d-%d", manifestRange.Id, manifestStart, manifestEnd)
@@ -201,10 +203,12 @@ func controlledAccess(issuer string, datasetId string, handler *requestHandler, 
 					}
 				}
 
-				if !allowed {
+				if allowed {
+					regions = append(regions, &htsrequest.Region{ReferenceName: r.GetReferenceName(), Start: r.Start, End: r.End})
+				} else {
 					handler.Writer.WriteHeader(403)
 
-					json.NewEncoder(handler.Writer).Encode("Could not access region")
+					json.NewEncoder(handler.Writer).Encode(fmt.Sprintf("Could not access region %s %s-%s", r.GetReferenceName(), r.StartString(), r.EndString()))
 
 					return nil
 				}
@@ -236,11 +240,10 @@ func ticketRequestHandler(handler *requestHandler) {
 		return
 	}
 
-	claims := handler.Request.Context().Value(options.DefaultClaimsContextKeyName).(map[string]interface{})
+	// part of our URL must be the dataset we are trying to access
+	datasetRequested := handler.HtsReq.GetDataset()
 
-	// for _, f := range claims["ga4gh_passport_v1"].([]interface{}) {
-	//	log.Debug("%v", f)
-	//}
+	claims := handler.Request.Context().Value(options.DefaultClaimsContextKeyName).(map[string]interface{})
 
 	var blockURLs []*htsticket.URL
 
@@ -282,8 +285,7 @@ func ticketRequestHandler(handler *requestHandler) {
 				for _, visaClaim := range visaSplit {
 					// TODO: check expiry claims
 					// TODO: check identity claims match outer passport
-					// TODO: handle multiple controlled access datasets
-					// for the moment - use only the first one that results in urls
+					// cover the situation that somehow the controlled access visa appears twice??
 					if blockURLs != nil {
 						continue
 					}
@@ -291,7 +293,11 @@ func ticketRequestHandler(handler *requestHandler) {
 					if strings.HasPrefix(visaClaim, "c:") {
 						datasetId := strings.TrimPrefix(visaClaim, "c:")
 
-						blockURLs = controlledAccess(i, datasetId, handler, &dao)
+						// the datset req in the URL has to match this visa - i.e. we need to cover the situation
+						// where this user has many datasets at this DAC/htsget endpoint
+						if datasetRequested == datasetId {
+							blockURLs = controlledAccess(i, datasetId, handler, &dao)
+						}
 					}
 				}
 			} else {
@@ -303,10 +309,12 @@ func ticketRequestHandler(handler *requestHandler) {
 	}
 
 	if blockURLs == nil {
-		msg := fmt.Sprintf("No valid controlled access visa from our trusted DACs (%v) found so permission is denied", ISSUER_DAC)
+		msg := fmt.Sprintf("No valid controlled access visa from our trusted DACs (%v) was found matching dataset %s - so permission is denied", ISSUER_DAC, datasetRequested)
 		htserror.PermissionDenied(handler.Writer, &msg)
 		return
 	}
+
+	blockURLs = append(blockURLs, dao.GetBgzipEof())
 
 	htsticket.FinalizeTicket(handler.HtsReq.GetFormat(), blockURLs, handler.Writer)
 }
